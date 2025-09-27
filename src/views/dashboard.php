@@ -2,22 +2,30 @@
 session_start();
 require_once '../../config/db.php';
 
-if (!isset($_SESSION['usuario'])) {
-    header('Location: login.php');
-    exit();
+// Verifica que el usuario esté en sesión
+$usuario = $_SESSION['usuario'] ?? [];
+$nombre = $usuario['nombre'] ?? 'Usuario';
+$id = $usuario['id'] ?? 0;
+
+// Consulta segura: solo si el id es válido
+$equipos_count = 0;
+if ($id > 0) {
+    $stmt = $conn->prepare("SELECT COUNT(*) as total FROM inventarios WHERE usuario_id = ?");
+    $stmt->bind_param("i", $id);
+    $stmt->execute();
+    $result = $stmt->get_result();
+    $equipos_count = $result->fetch_assoc()['total'] ?? 0;
+    $stmt->close();
 }
-$usuario = $_SESSION['usuario'];
 
-// Mostrar mensajes
-$success = $_GET['success'] ?? '';
-$error = $_GET['error'] ?? '';
-
-// Contar equipos registrados
-$stmt = $conn->prepare("SELECT COUNT(*) as total FROM inventarios WHERE usuario_id = ?");
-$stmt->bind_param("i", $usuario['id']);
-$stmt->execute();
-$result = $stmt->get_result();
-$equipos_count = $result->fetch_assoc()['total'];
+// Actualiza la sesión con el email del usuario
+$_SESSION['usuario'] = [
+    'id' => $usuario['id'],
+    'nombre' => $usuario['nombre'],
+    'email' => $usuario['email']
+];
+$success = $success ?? '';
+$error = $error ?? '';
 ?>
 <!DOCTYPE html>
 <html lang="es">
